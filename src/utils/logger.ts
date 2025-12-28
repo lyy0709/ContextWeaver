@@ -114,6 +114,45 @@ function createFormattedStream(filePath: string): Writable {
   });
 }
 
+// 控制台格式化输出（彩色），不依赖 pino-pretty
+function createConsoleStream(): Writable {
+  // ANSI 颜色码
+  const colors: Record<number, string> = {
+    10: "\x1b[90m",  // TRACE - 灰色
+    20: "\x1b[36m",  // DEBUG - 青色
+    30: "\x1b[32m",  // INFO - 绿色
+    40: "\x1b[33m",  // WARN - 黄色
+    50: "\x1b[31m",  // ERROR - 红色
+    60: "\x1b[35m",  // FATAL - 品红
+  };
+  const reset = "\x1b[0m";
+
+  return new Writable({
+    write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
+      try {
+        const log = JSON.parse(chunk.toString());
+        const time = formatTime();
+        const level = getLevelLabel(log.level);
+        const color = colors[log.level] || "";
+        const msg = log.msg || "";
+
+        // 提取额外的属性
+        const { level: _l, time: _t, pid: _p, hostname: _h, name: _n, msg: _m, ...extra } = log;
+
+        let line = `${color}${time} [${level}]${reset} ${msg}`;
+        if (Object.keys(extra).length > 0) {
+          const extraStr = JSON.stringify(extra);
+          line += ` ${color}${extraStr}${reset}`;
+        }
+
+        process.stdout.write(line + "\n", callback);
+      } catch {
+        process.stdout.write(chunk.toString(), callback);
+      }
+    },
+  });
+}
+
 // =========================================
 // Logger 创建
 // =========================================
@@ -128,15 +167,8 @@ function createDevLogger(): pino.Logger {
   const logPath = path.join(logDir, getLogFileName());
   const logStream = createFormattedStream(logPath);
 
-  // 控制台日志（彩色）
-  const consoleTransport = pino.transport({
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      translateTime: "SYS:yyyy-mm-dd HH:MM:ss",
-      ignore: "pid,hostname",
-    },
-  });
+  // 控制台日志（彩色，使用自定义流）
+  const consoleStream = createConsoleStream();
 
   return pino(
     {
@@ -145,12 +177,12 @@ function createDevLogger(): pino.Logger {
     },
     pino.multistream([
       { stream: logStream, level: logLevel },
-      { stream: consoleTransport, level: logLevel },
+      { stream: consoleStream, level: logLevel },
     ])
   );
 }
 
-// 生产环境：只写入 ~/.contextweaver/logs（无控制台输出）
+// 生产环境：写入 ~/.contextweaver/logs + 控制台输出（不依赖 pino-pretty）
 function createProdLogger(): pino.Logger {
   ensureLogDir(logDir);
 
@@ -160,12 +192,18 @@ function createProdLogger(): pino.Logger {
   const logPath = path.join(logDir, getLogFileName());
   const logStream = createFormattedStream(logPath);
 
+  // 控制台输出流（使用自定义格式化，不依赖 pino-pretty）
+  const consoleStream = createConsoleStream();
+
   return pino(
     {
       level: logLevel,
       name: "contextweaver",
     },
-    logStream
+    pino.multistream([
+      { stream: logStream, level: logLevel },
+      { stream: consoleStream, level: logLevel },
+    ])
   );
 }
 

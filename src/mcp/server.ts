@@ -18,7 +18,6 @@ import { handleCodebaseRetrieval, codebaseRetrievalSchema } from "./tools/index.
 // ===========================================
 
 const SERVER_NAME = "contextweaver";
-const SERVER_VERSION = "0.1.0";
 
 // ===========================================
 // 工具定义
@@ -97,12 +96,12 @@ Examples of BAD queries:
  * 启动 MCP 服务器
  */
 export async function startMcpServer(): Promise<void> {
-    logger.info({ name: SERVER_NAME, version: SERVER_VERSION }, "启动 MCP 服务器");
+    logger.info({ name: SERVER_NAME }, "启动 MCP 服务器");
 
     const server = new Server(
         {
             name: SERVER_NAME,
-            version: SERVER_VERSION,
+            version: "1.0.0",
         },
         {
             capabilities: {

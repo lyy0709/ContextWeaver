@@ -16,7 +16,7 @@ import fs from "fs";
 
 // 环境变量加载
 
-const isDev = process.env.NODE_ENV !== "dev";
+const isDev = process.env.NODE_ENV === "dev";
 
 function loadEnv(): void {
     // 可能的 .env 文件路径（按优先级排序）
@@ -75,13 +75,19 @@ export interface EnvCheckResult {
 }
 
 /**
+ * 默认的 API Key 占位符（未修改则视为未配置）
+ */
+const DEFAULT_API_KEY_PLACEHOLDER = "your-api-key-here";
+
+/**
  * 检查 Embedding 相关环境变量是否已配置（不抛出错误）
  * @returns 检查结果，包含是否有效和缺失的变量列表
  */
 export function checkEmbeddingEnv(): EnvCheckResult {
     const missingVars: string[] = [];
 
-    if (!process.env.EMBEDDINGS_API_KEY) {
+    const apiKey = process.env.EMBEDDINGS_API_KEY;
+    if (!apiKey || apiKey === DEFAULT_API_KEY_PLACEHOLDER) {
         missingVars.push("EMBEDDINGS_API_KEY");
     }
     if (!process.env.EMBEDDINGS_BASE_URL) {
@@ -104,7 +110,8 @@ export function checkEmbeddingEnv(): EnvCheckResult {
 export function checkRerankerEnv(): EnvCheckResult {
     const missingVars: string[] = [];
 
-    if (!process.env.RERANK_API_KEY) {
+    const apiKey = process.env.RERANK_API_KEY;
+    if (!apiKey || apiKey === DEFAULT_API_KEY_PLACEHOLDER) {
         missingVars.push("RERANK_API_KEY");
     }
     if (!process.env.RERANK_BASE_URL) {
