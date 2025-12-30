@@ -65,17 +65,26 @@ class ProgressTracker {
   private totalTokens = 0;
   private startTime: number;
   private lastLogTime = 0;
-  private readonly logIntervalMs = 2000; // 每 3 秒输出一次
+  private readonly logIntervalMs = 2000; // 每 2 秒输出一次
+  private onProgress?: (completed: number, total: number) => void;
+  /** 是否跳过日志（单批次时跳过，避免与索引日志混淆） */
+  private readonly skipLogs: boolean;
 
-  constructor(total: number) {
+  constructor(total: number, onProgress?: (completed: number, total: number) => void) {
     this.total = total;
     this.startTime = Date.now();
+    this.onProgress = onProgress;
+    // 单批次（如查询 embedding）时跳过进度日志
+    this.skipLogs = total <= 1;
   }
 
   /** 记录一个批次完成 */
   recordBatch(tokens: number): void {
     this.completed++;
     this.totalTokens += tokens;
+
+    // 调用外部回调
+    this.onProgress?.(this.completed, this.total);
 
     const now = Date.now();
     if (now - this.lastLogTime >= this.logIntervalMs) {
@@ -86,6 +95,8 @@ class ProgressTracker {
 
   /** 输出进度 */
   private logProgress(): void {
+    if (this.skipLogs) return;
+
     const elapsed = (Date.now() - this.startTime) / 1000;
     const percent = Math.round((this.completed / this.total) * 100);
     const rate = this.completed / elapsed;
@@ -105,6 +116,8 @@ class ProgressTracker {
 
   /** 完成时输出最终统计 */
   complete(): void {
+    if (this.skipLogs) return;
+
     const elapsed = (Date.now() - this.startTime) / 1000;
     logger.info(
       {
@@ -241,7 +254,7 @@ class RateLimitController {
     );
 
     // 创建暂停 Promise
-    let resumeResolve: () => void = () => {};
+    let resumeResolve: () => void = () => { };
     this.pausePromise = new Promise<void>((resolve) => {
       resumeResolve = resolve;
     });
@@ -317,8 +330,13 @@ export class EmbeddingClient {
    * 批量获取 Embedding
    * @param texts 待处理的文本数组
    * @param batchSize 每批次发送的文本数量（默认 20）
+   * @param onProgress 可选的进度回调 (completed, total) => void
    */
-  async embedBatch(texts: string[], batchSize = 20): Promise<EmbeddingResult[]> {
+  async embedBatch(
+    texts: string[],
+    batchSize = 20,
+    onProgress?: (completed: number, total: number) => void,
+  ): Promise<EmbeddingResult[]> {
     if (texts.length === 0) {
       return [];
     }
@@ -329,8 +347,8 @@ export class EmbeddingClient {
       batches.push(texts.slice(i, i + batchSize));
     }
 
-    // 创建进度追踪器
-    const progress = new ProgressTracker(batches.length);
+    // 创建进度追踪器（传入外部回调）
+    const progress = new ProgressTracker(batches.length, onProgress);
 
     // 使用速率限制控制器处理各批次
     const batchResults = await Promise.all(

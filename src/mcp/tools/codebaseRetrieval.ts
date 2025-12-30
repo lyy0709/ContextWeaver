@@ -129,8 +129,13 @@ function isProjectIndexed(projectId: string): boolean {
  *
  * @param repoPath 代码库路径
  * @param projectId 项目 ID
+ * @param onProgress 可选的进度回调
  */
-async function ensureIndexed(repoPath: string, projectId: string): Promise<void> {
+async function ensureIndexed(
+  repoPath: string,
+  projectId: string,
+  onProgress?: (current: number, total?: number, message?: string) => void,
+): Promise<void> {
   // 延迟导入锁和 scan 函数（避免 MCP 启动时加载 native 模块）
   const { withLock } = await import('../../utils/lock.js');
   const { scan } = await import('../../scanner/index.js');
@@ -143,12 +148,13 @@ async function ensureIndexed(repoPath: string, projectId: string): Promise<void>
         { repoPath, projectId: projectId.slice(0, 10) },
         '代码库未初始化，开始首次索引...',
       );
+      onProgress?.(0, 100, '代码库未索引，开始首次索引...');
     } else {
       logger.debug({ projectId: projectId.slice(0, 10) }, '执行增量索引...');
     }
 
     const startTime = Date.now();
-    const stats = await scan(repoPath, { vectorIndex: true });
+    const stats = await scan(repoPath, { vectorIndex: true, onProgress });
     const elapsed = Date.now() - startTime;
 
     logger.info(
@@ -169,12 +175,20 @@ async function ensureIndexed(repoPath: string, projectId: string): Promise<void>
 
 // 工具处理函数
 
+/** 进度回调类型 */
+export type ProgressCallback = (current: number, total?: number, message?: string) => void;
+
 /**
  * 处理 codebase-retrieval 工具调用
+ *
+ * @param args 工具输入参数
+ * @param configOverride 可选的配置覆盖
+ * @param onProgress 可选的进度回调（用于 MCP 进度通知）
  */
 export async function handleCodebaseRetrieval(
   args: CodebaseRetrievalInput,
   configOverride: Partial<SearchConfig> = ZEN_CONFIG_OVERRIDE,
+  onProgress?: ProgressCallback,
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   const { repo_path, information_request, technical_terms } = args;
 
@@ -204,7 +218,7 @@ export async function handleCodebaseRetrieval(
   const projectId = generateProjectId(repo_path);
 
   // 2. 确保代码库已索引（自动初始化 + 增量更新）
-  await ensureIndexed(repo_path, projectId);
+  await ensureIndexed(repo_path, projectId, onProgress);
 
   // 3. 合并查询
   // - information_request 驱动语义向量搜索
@@ -281,7 +295,7 @@ export async function handleCodebaseRetrieval(
   );
 
   // 7. 格式化输出
-  return formatMcpResponse(contextPack, information_request);
+  return formatMcpResponse(contextPack);
 }
 
 // 响应格式化
@@ -291,7 +305,6 @@ export async function handleCodebaseRetrieval(
  */
 function formatMcpResponse(
   pack: ContextPack,
-  originalRequest: string,
 ): { content: Array<{ type: 'text'; text: string }> } {
   const { files, seeds } = pack;
 
@@ -305,7 +318,7 @@ function formatMcpResponse(
 
   // 构建摘要
   const summary = [
-    `Found ${seeds.length} relevant code blocks for: "${originalRequest}"`,
+    `Found ${seeds.length} relevant code blocks`,
     `Files: ${files.length}`,
     `Total segments: ${files.reduce((acc, f) => acc + f.segments.length, 0)}`,
   ].join(' | ');

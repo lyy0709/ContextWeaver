@@ -68,8 +68,13 @@ export class Indexer {
    *
    * @param db SQLite 数据库实例
    * @param results 文件处理结果
+   * @param onProgress 可选的进度回调 (indexed, total) => void
    */
-  async indexFiles(db: Database.Database, results: ProcessResult[]): Promise<IndexStats> {
+  async indexFiles(
+    db: Database.Database,
+    results: ProcessResult[],
+    onProgress?: (indexed: number, total: number) => void,
+  ): Promise<IndexStats> {
     if (!this.vectorStore) {
       await this.init();
     }
@@ -125,7 +130,7 @@ export class Indexer {
 
     // 批量处理需要索引的文件
     if (toIndex.length > 0) {
-      const indexResult = await this.batchIndex(db, toIndex);
+      const indexResult = await this.batchIndex(db, toIndex, onProgress);
       stats.indexed = indexResult.success;
       stats.errors = indexResult.errors;
     }
@@ -155,6 +160,7 @@ export class Indexer {
   private async batchIndex(
     db: Database.Database,
     files: FileToIndex[],
+    onProgress?: (indexed: number, total: number) => void,
   ): Promise<{ success: number; errors: number }> {
     if (files.length === 0) {
       return { success: 0, errors: 0 };
@@ -180,9 +186,11 @@ export class Indexer {
 
     // ===== 阶段 2: 批量获取 embeddings =====
     logger.info({ count: allTexts.length, files: files.length }, '开始批量 Embedding');
+
     let embeddings: number[][];
     try {
-      const results = await this.embeddingClient.embedBatch(allTexts);
+      // 传递进度回调给 embedBatch，让它在每个 API 批次完成时报告进度
+      const results = await this.embeddingClient.embedBatch(allTexts, 20, onProgress);
       embeddings = results.map((r) => r.embedding);
     } catch (err) {
       const error = err as { message?: string; stack?: string };

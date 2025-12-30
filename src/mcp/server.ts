@@ -116,15 +116,40 @@ export async function startMcpServer(): Promise<void> {
   });
 
   // 注册工具调用处理器
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
     const { name, arguments: args } = request.params;
     logger.info({ tool: name }, '收到 call_tool 请求');
+
+    // 提取 progressToken（如果客户端请求进度通知）
+    const rawToken = extra._meta?.progressToken;
+    const progressToken =
+      typeof rawToken === 'string' || typeof rawToken === 'number' ? rawToken : undefined;
+
+    // 创建进度通知回调
+    const onProgress = progressToken
+      ? async (current: number, total?: number, message?: string) => {
+        try {
+          await extra.sendNotification({
+            method: 'notifications/progress',
+            params: {
+              progressToken,
+              progress: current,
+              total,
+              message,
+            },
+          });
+        } catch (err) {
+          // 忽略通知发送失败，不影响主流程
+          logger.debug({ error: (err as Error).message }, '发送进度通知失败');
+        }
+      }
+      : undefined;
 
     try {
       switch (name) {
         case 'codebase-retrieval': {
           const parsed = codebaseRetrievalSchema.parse(args);
-          return await handleCodebaseRetrieval(parsed);
+          return await handleCodebaseRetrieval(parsed, undefined, onProgress);
         }
         default:
           throw new Error(`Unknown tool: ${name}`);
@@ -146,7 +171,6 @@ export async function startMcpServer(): Promise<void> {
 
   // 启动 stdio 传输
   const transport = new StdioServerTransport();
-  await server.connect(transport);
-
   logger.info('MCP 服务器已启动，等待连接...');
+  await server.connect(transport);
 }

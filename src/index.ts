@@ -93,9 +93,15 @@ cli
     try {
       const stats: ScanStats = await scan(rootPath, {
         force: options.force,
-        onProgress: (current, total) => {
-          const percent = ((current / total) * 100).toFixed(1);
-          logger.info({ current, total, percent: `${percent}%` }, '扫描进度');
+        onProgress: (current, total, message) => {
+          if (total !== undefined) {
+            const percent = ((current / total) * 100).toFixed(1);
+            logger.info({ current, total, percent: `${percent}%`, message }, '扫描进度');
+          } else if (message) {
+            logger.info({ current, message }, '扫描进度');
+          } else {
+            logger.info({ current }, '扫描进度');
+          }
         },
       });
 

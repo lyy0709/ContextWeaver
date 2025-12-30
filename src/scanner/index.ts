@@ -42,6 +42,15 @@ export interface ScanStats {
 }
 
 /**
+ * 进度回调函数类型
+ *
+ * @param current 当前进度值
+ * @param total 总进度值（可选，未知时为 undefined）
+ * @param message 人可读的进度消息（可选）
+ */
+export type ProgressCallback = (current: number, total?: number, message?: string) => void;
+
+/**
  * 扫描选项
  */
 export interface ScanOptions {
@@ -50,7 +59,7 @@ export interface ScanOptions {
   /** 是否进行向量索引（默认 true） */
   vectorIndex?: boolean;
   /** 进度回调 */
-  onProgress?: (current: number, total: number) => void;
+  onProgress?: ProgressCallback;
 }
 
 /**
@@ -108,19 +117,13 @@ export async function scan(rootPath: string, options: ScanOptions = {}): Promise
       filePaths.map((p) => path.relative(rootPath, p).replace(/\\/g, '/')),
     );
 
-    // 处理文件
-    let processedCount = 0;
+    // 处理文件（文件处理很快，不需要报告进度）
     const results: ProcessResult[] = [];
-
-    // 分批处理以支持进度回调
     const batchSize = 100;
     for (let i = 0; i < filePaths.length; i += batchSize) {
       const batch = filePaths.slice(i, i + batchSize);
       const batchResults = await processFiles(rootPath, batch, knownFiles);
       results.push(...batchResults);
-
-      processedCount += batch.length;
-      options.onProgress?.(processedCount, filePaths.length);
     }
 
     // 准备数据库操作
@@ -185,6 +188,9 @@ export async function scan(rootPath: string, options: ScanOptions = {}): Promise
 
     // ===== 向量索引 =====
     if (options.vectorIndex !== false) {
+      // 报告阶段 3: 开始向量索引
+      options.onProgress?.(45, 100, '正在准备向量索引...');
+
       const embeddingConfig = getEmbeddingConfig();
       const indexer = await getIndexer(projectId, embeddingConfig.dimensions);
 
@@ -229,7 +235,16 @@ export async function scan(rootPath: string, options: ScanOptions = {}): Promise
       const allToIndex = [...needsVectorIndex, ...healingFiles, ...deletedResults];
 
       if (allToIndex.length > 0) {
-        const indexStats = await indexer.indexFiles(db, allToIndex);
+        // 报告开始生成向量嵌入（这是最耗时的阶段）
+        // Embedding 进度映射到 45-99 区间，确保进度单调递增
+        options.onProgress?.(45, 100, `正在生成向量嵌入... (${allToIndex.length} 个文件)`);
+
+        // 传递进度回调给 indexer（embedding API 调用是真正的耗时操作）
+        const indexStats = await indexer.indexFiles(db, allToIndex, (completed, total) => {
+          // 将 embedding 批次进度映射到 45-99 区间（保留 100 给最终完成）
+          const progress = 45 + Math.floor((completed / total) * 54);
+          options.onProgress?.(progress, 100, `正在生成向量嵌入... (${completed}/${total} 批次)`);
+        });
         stats.vectorIndex = {
           indexed: indexStats.indexed,
           deleted: indexStats.deleted,
@@ -237,6 +252,9 @@ export async function scan(rootPath: string, options: ScanOptions = {}): Promise
         };
       }
     }
+
+    // 报告完成
+    options.onProgress?.(100, 100, '索引完成');
 
     return stats;
   } finally {
