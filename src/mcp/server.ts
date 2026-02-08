@@ -118,6 +118,12 @@ Features:
           type: 'string',
           description: 'Project root path for context',
         },
+        webui: {
+          type: 'boolean',
+          description:
+            'When true (default), opens a Web UI in the browser for interactive review/editing. When false, returns the enhanced prompt directly.',
+          default: true,
+        },
       },
       required: ['prompt'],
     },

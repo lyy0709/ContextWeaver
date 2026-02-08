@@ -14,6 +14,13 @@ export const enhancePromptSchema = z.object({
       "Recent conversation history for context. Format: 'User: ...\\nAssistant: ...'",
     ),
   project_root_path: z.string().optional().describe('Project root path for context'),
+  webui: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      'When true (default), opens a Web UI in the browser for interactive review/editing. When false, returns the enhanced prompt directly.',
+    ),
 });
 
 export type EnhancePromptInput = z.infer<typeof enhancePromptSchema>;
@@ -59,7 +66,11 @@ PROMPT_ENHANCER_TOKEN=your-api-key-here
 export async function handleEnhancePrompt(
   args: EnhancePromptInput,
 ): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
-  logger.info({ hasHistory: Boolean(args.conversation_history) }, 'MCP enhance-prompt 调用开始');
+  const useWebUi = args.webui !== false;
+  logger.info(
+    { hasHistory: Boolean(args.conversation_history), webui: useWebUi },
+    'MCP enhance-prompt 调用开始',
+  );
 
   const { checkEnhancerEnv } = await import('../../config.js');
   const envCheck = checkEnhancerEnv();
@@ -69,6 +80,29 @@ export async function handleEnhancePrompt(
   }
 
   try {
+    if (useWebUi) {
+      const { startEnhanceServer } = await import('../../enhancer/server.js');
+      const { openBrowser } = await import('../../enhancer/browser.js');
+
+      const result = await startEnhanceServer(args.prompt, {
+        conversationHistory: args.conversation_history,
+        projectRootPath: args.project_root_path,
+        onStarted: (url) => {
+          openBrowser(url);
+        },
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: result.enhanced,
+          },
+        ],
+      };
+    }
+
+    // webui=false: 直接调用 API 返回结果
     const { enhancePrompt } = await import('../../enhancer/index.js');
     const result = await enhancePrompt({
       prompt: args.prompt,

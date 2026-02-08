@@ -104,6 +104,8 @@ async function findAvailablePort(start = 3000, end = 3100): Promise<number> {
 
 export interface EnhanceServerOptions {
   endpointOverride?: 'openai' | 'claude' | 'gemini';
+  conversationHistory?: string;
+  projectRootPath?: string;
   onStarted?: (url: string) => void;
 }
 
@@ -116,6 +118,8 @@ export async function startEnhanceServer(
   const initial = await enhancePrompt({
     prompt,
     endpointOverride: options.endpointOverride,
+    conversationHistory: options.conversationHistory,
+    projectRootPath: options.projectRootPath,
   });
 
   const session: EnhanceSession = {
@@ -214,6 +218,8 @@ export async function startEnhanceServer(
         const next = await enhancePrompt({
           prompt: nextPrompt,
           endpointOverride: options.endpointOverride,
+          conversationHistory: options.conversationHistory,
+          projectRootPath: options.projectRootPath,
         });
 
         session.original = nextPrompt;
