@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import http from 'node:http';
 import net from 'node:net';
 
+import { getEnhancerWebUiTimeoutMs } from '../config.js';
 import { logger } from '../utils/logger.js';
 import { enhancePrompt, type EnhanceResult } from './index.js';
 import { getEnhancePageHtml } from './ui.js';
@@ -140,6 +141,8 @@ export async function startEnhanceServer(
     rejectResult = reject;
   });
 
+  const timeoutMs = getEnhancerWebUiTimeoutMs();
+
   const server = http.createServer(async (req, res) => {
     try {
       setCors(req, res);
@@ -155,7 +158,7 @@ export async function startEnhanceServer(
       if (req.method === 'GET' && url.pathname === '/enhance') {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.end(getEnhancePageHtml());
+        res.end(getEnhancePageHtml(timeoutMs));
         return;
       }
 
@@ -243,7 +246,6 @@ export async function startEnhanceServer(
     }
   });
 
-  const timeoutMs = 8 * 60 * 1000;
   const timeout = setTimeout(() => {
     if (resolved) return;
     logger.info('会话超时，自动使用增强版结果');

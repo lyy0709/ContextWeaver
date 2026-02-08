@@ -43,7 +43,8 @@ describe('OpenAiAdapter', () => {
     const body = JSON.parse(capturedInit?.body as string);
     expect(body.model).toBe('gpt-4o-mini');
     expect(body.messages).toHaveLength(2);
-    expect(body.temperature).toBe(0.7);
+    expect(body.temperature).toBe(0.3);
+    expect(body.stop).toContain('<cw-end/>');
 
     const headers = capturedInit?.headers as Record<string, string>;
     expect(headers['Authorization']).toBe('Bearer test-key');

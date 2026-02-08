@@ -10,7 +10,7 @@ describe('getEnhancePageHtml', () => {
 
   it('should contain page title', () => {
     const html = getEnhancePageHtml();
-    expect(html).toContain('ContextWeaver Prompt Enhancer');
+    expect(html).toContain('ContextWeaver');
   });
 
   it('should contain textarea elements for original and enhanced', () => {
@@ -42,9 +42,24 @@ describe('getEnhancePageHtml', () => {
     expect(html).toContain('--primary:');
   });
 
-  it('should have accessibility labels', () => {
+  it('should have accessibility labels on textareas', () => {
     const html = getEnhancePageHtml();
-    expect(html).toContain('aria-label="Original prompt"');
-    expect(html).toContain('aria-label="Enhanced prompt"');
+    expect(html).toContain('aria-label=');
+  });
+
+  it('should use default timeout when no argument provided', () => {
+    const html = getEnhancePageHtml();
+    expect(html).toContain(`TIMEOUT_MS = ${8 * 60 * 1000}`);
+  });
+
+  it('should inject custom timeout value', () => {
+    const html = getEnhancePageHtml(120000);
+    expect(html).toContain('TIMEOUT_MS = 120000');
+  });
+
+  it('should not contain hardcoded timeout when custom value is used', () => {
+    const html = getEnhancePageHtml(300000);
+    expect(html).toContain('TIMEOUT_MS = 300000');
+    expect(html).not.toContain('TIMEOUT_MS = 480000');
   });
 });

@@ -217,6 +217,47 @@ export function getRerankerConfig(): RerankerConfig {
 }
 
 /**
+ * Enhancer endpoint defaults — single source of truth.
+ * Do NOT duplicate these values elsewhere.
+ */
+export const ENHANCER_DEFAULTS: Record<
+  EnhancerConfig['endpoint'],
+  { baseUrl: string; model: string }
+> = {
+  openai: {
+    baseUrl: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-4o-mini',
+  },
+  claude: {
+    baseUrl: 'https://api.anthropic.com/v1/messages',
+    model: 'claude-sonnet-4-20250514',
+  },
+  gemini: {
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    model: 'gemini-2.0-flash',
+  },
+};
+
+/** Default Web UI timeout: 8 minutes */
+const DEFAULT_WEBUI_TIMEOUT_MS = 8 * 60 * 1000;
+const MIN_WEBUI_TIMEOUT_MS = 30_000;
+const MAX_WEBUI_TIMEOUT_MS = 3_600_000;
+
+/**
+ * Get the Web UI session timeout (ms), configurable via
+ * `PROMPT_ENHANCER_WEBUI_TIMEOUT_MS`. Clamped to [30s, 60min].
+ */
+export function getEnhancerWebUiTimeoutMs(): number {
+  const raw = process.env.PROMPT_ENHANCER_WEBUI_TIMEOUT_MS;
+  if (!raw) return DEFAULT_WEBUI_TIMEOUT_MS;
+
+  const parsed = parseInt(raw, 10);
+  if (Number.isNaN(parsed)) return DEFAULT_WEBUI_TIMEOUT_MS;
+
+  return Math.max(MIN_WEBUI_TIMEOUT_MS, Math.min(MAX_WEBUI_TIMEOUT_MS, parsed));
+}
+
+/**
  * 获取 Prompt Enhancer 配置
  * @throws 如果必需的配置项缺失
  */
@@ -230,25 +271,15 @@ export function getEnhancerConfig(): EnhancerConfig {
     );
   }
 
-  const defaultBaseUrlByEndpoint: Record<EnhancerConfig['endpoint'], string> = {
-    openai: 'https://api.openai.com/v1/chat/completions',
-    claude: 'https://api.anthropic.com/v1/messages',
-    gemini: 'https://generativelanguage.googleapis.com/v1beta',
-  };
-
-  const defaultModelByEndpoint: Record<EnhancerConfig['endpoint'], string> = {
-    openai: 'gpt-4o-mini',
-    claude: 'claude-sonnet-4-20250514',
-    gemini: 'gemini-2.0-flash',
-  };
+  const defaults = ENHANCER_DEFAULTS[endpoint];
 
   const apiKey = process.env.PROMPT_ENHANCER_TOKEN;
   if (!apiKey) {
     throw new Error('PROMPT_ENHANCER_TOKEN 环境变量未设置');
   }
 
-  const model = process.env.PROMPT_ENHANCER_MODEL || defaultModelByEndpoint[endpoint];
-  const baseUrl = process.env.PROMPT_ENHANCER_BASE_URL || defaultBaseUrlByEndpoint[endpoint];
+  const model = process.env.PROMPT_ENHANCER_MODEL || defaults.model;
+  const baseUrl = process.env.PROMPT_ENHANCER_BASE_URL || defaults.baseUrl;
 
   return {
     endpoint,

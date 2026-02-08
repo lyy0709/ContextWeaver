@@ -1,3 +1,4 @@
+import { fetchWithRetry } from '../fetchWithRetry.js';
 import type { LlmClient, LlmClientConfig, LlmMessage } from '../llmClient.js';
 
 interface OpenAiChatCompletionResponse {
@@ -13,7 +14,7 @@ export class OpenAiAdapter implements LlmClient {
   }
 
   async chat(messages: LlmMessage[]): Promise<string> {
-    const response = await fetch(this.config.baseUrl, {
+    const response = await fetchWithRetry(this.config.baseUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
@@ -22,11 +23,18 @@ export class OpenAiAdapter implements LlmClient {
       body: JSON.stringify({
         model: this.config.model,
         messages,
-        temperature: 0.7,
+        temperature: 0.3,
+        stop: ['<cw-end/>'],
       }),
     });
 
-    const data = (await response.json()) as OpenAiChatCompletionResponse;
+    const raw = await response.text();
+    let data: OpenAiChatCompletionResponse;
+    try {
+      data = JSON.parse(raw) as OpenAiChatCompletionResponse;
+    } catch {
+      throw new Error(`OpenAI API 错误: HTTP ${response.status} - ${raw.slice(0, 200)}`);
+    }
 
     if (!response.ok || data.error) {
       const errorMsg = data.error?.message || `HTTP ${response.status}`;
@@ -41,4 +49,3 @@ export class OpenAiAdapter implements LlmClient {
     return content;
   }
 }
-

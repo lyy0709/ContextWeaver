@@ -1,3 +1,4 @@
+import { fetchWithRetry } from '../fetchWithRetry.js';
 import type { LlmClient, LlmClientConfig, LlmMessage } from '../llmClient.js';
 
 interface ClaudeMessage {
@@ -27,10 +28,10 @@ export class ClaudeAdapter implements LlmClient {
       .filter((m) => m.role !== 'system')
       .map((m) => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: [{ type: 'text', text: m.content }],
+        content: [{ type: 'text' as const, text: m.content }],
       }));
 
-    const response = await fetch(this.config.baseUrl, {
+    const response = await fetchWithRetry(this.config.baseUrl, {
       method: 'POST',
       headers: {
         'x-api-key': this.config.apiKey,
@@ -42,11 +43,18 @@ export class ClaudeAdapter implements LlmClient {
         system,
         messages: userAssistantMessages,
         max_tokens: 4096,
-        temperature: 0.7,
+        temperature: 0.3,
+        stop_sequences: ['<cw-end/>'],
       }),
     });
 
-    const data = (await response.json()) as ClaudeResponse;
+    const raw = await response.text();
+    let data: ClaudeResponse;
+    try {
+      data = JSON.parse(raw) as ClaudeResponse;
+    } catch {
+      throw new Error(`Claude API 错误: HTTP ${response.status} - ${raw.slice(0, 200)}`);
+    }
 
     if (!response.ok || data.error) {
       const errorMsg = data.error?.message || `HTTP ${response.status}`;
@@ -61,4 +69,3 @@ export class ClaudeAdapter implements LlmClient {
     return content;
   }
 }
-

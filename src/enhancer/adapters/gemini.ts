@@ -1,3 +1,4 @@
+import { fetchWithRetry } from '../fetchWithRetry.js';
 import type { LlmClient, LlmClientConfig, LlmMessage } from '../llmClient.js';
 
 interface GeminiContentPart {
@@ -42,24 +43,30 @@ export class GeminiAdapter implements LlmClient {
     const withoutVersion = baseUrl.replace(/\/v1beta$/, '');
     const url = `${withoutVersion}/v1beta/models/${encodeURIComponent(this.config.model)}:generateContent?key=${encodeURIComponent(this.config.apiKey)}`;
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // Gemini accepts systemInstruction at top-level.
         systemInstruction: systemInstruction
           ? { parts: [{ text: systemInstruction }] }
           : undefined,
         contents,
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.3,
+          stopSequences: ['<cw-end/>'],
         },
       }),
     });
 
-    const data = (await response.json()) as GeminiResponse;
+    const raw = await response.text();
+    let data: GeminiResponse;
+    try {
+      data = JSON.parse(raw) as GeminiResponse;
+    } catch {
+      throw new Error(`Gemini API 错误: HTTP ${response.status} - ${raw.slice(0, 200)}`);
+    }
 
     if (!response.ok || data.error) {
       const errorMsg = data.error?.message || `HTTP ${response.status}`;

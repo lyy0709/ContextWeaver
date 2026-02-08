@@ -42,7 +42,8 @@ describe('ClaudeAdapter', () => {
     expect(capturedBody.system).toBe('You are helpful.');
     expect(capturedBody.messages).toHaveLength(3); // user, assistant, user (no system)
     expect(capturedBody.max_tokens).toBe(4096);
-    expect(capturedBody.temperature).toBe(0.7);
+    expect(capturedBody.temperature).toBe(0.3);
+    expect(capturedBody.stop_sequences).toContain('<cw-end/>');
   });
 
   it('should set correct headers including anthropic-version', async () => {

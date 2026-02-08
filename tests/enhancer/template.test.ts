@@ -126,4 +126,66 @@ describe('renderPrompt', () => {
     expect(result).toContain('Please output the enhanced prompt in English.');
     expect(result).toContain('<enhanced-prompt>');
   });
+
+  describe('conditional block placeholders', () => {
+    it('should omit conversation_history_block when conversationHistory is empty', () => {
+      const template = 'Before{{conversation_history_block}}After';
+      const result = renderPrompt(template, {
+        originalPrompt: 'test',
+        languageInstruction: 'English',
+      });
+      expect(result).toBe('BeforeAfter');
+    });
+
+    it('should omit codebase_context_block when codebaseContext is empty', () => {
+      const template = 'Before{{codebase_context_block}}After';
+      const result = renderPrompt(template, {
+        originalPrompt: 'test',
+        languageInstruction: 'English',
+      });
+      expect(result).toBe('BeforeAfter');
+    });
+
+    it('should include conversation_history_block with title when value present', () => {
+      const template = 'Before{{conversation_history_block}}After';
+      const result = renderPrompt(template, {
+        originalPrompt: 'test',
+        conversationHistory: 'User: hello',
+        languageInstruction: 'English',
+      });
+      expect(result).toContain('对话历史：');
+      expect(result).toContain('User: hello');
+    });
+
+    it('should include codebase_context_block with title when value present', () => {
+      const template = 'Before{{codebase_context_block}}After';
+      const result = renderPrompt(template, {
+        originalPrompt: 'test',
+        codebaseContext: 'function foo() {}',
+        languageInstruction: 'English',
+      });
+      expect(result).toContain('代码库上下文：');
+      expect(result).toContain('function foo() {}');
+    });
+
+    it('should omit both blocks in DEFAULT_TEMPLATE when both empty', () => {
+      const result = renderPrompt(DEFAULT_TEMPLATE, {
+        originalPrompt: 'Test prompt',
+        languageInstruction: 'Reply in English.',
+      });
+      expect(result).not.toContain('对话历史：');
+      expect(result).not.toContain('代码库上下文：');
+      expect(result).toContain('Test prompt');
+    });
+
+    it('should treat whitespace-only values as empty (omit block)', () => {
+      const template = 'X{{conversation_history_block}}Y';
+      const result = renderPrompt(template, {
+        originalPrompt: 'test',
+        conversationHistory: '   ',
+        languageInstruction: 'English',
+      });
+      expect(result).toBe('XY');
+    });
+  });
 });

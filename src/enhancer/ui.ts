@@ -1,4 +1,4 @@
-export function getEnhancePageHtml(): string {
+export function getEnhancePageHtml(timeoutMs: number = 8 * 60 * 1000): string {
   return `<!DOCTYPE html>
 <html lang="zh-CN">
   <head>
@@ -336,7 +336,7 @@ export function getEnhancePageHtml(): string {
       const countdownEl = document.getElementById('countdown');
 
       let baselineEnhanced = '';
-      const TIMEOUT_MS = 8 * 60 * 1000;
+      const TIMEOUT_MS = ${timeoutMs};
       const startTime = Date.now();
       let countdownTimer;
 
@@ -351,7 +351,8 @@ export function getEnhancePageHtml(): string {
         if (remaining <= 0) {
           clearInterval(countdownTimer);
           countdownEl.textContent = '已超时';
-          setStatus('会话超时，已自动采用增强版结果。', 'success');
+          setStatus('会话超时，已自动采用增强版结果。页面即将关闭…', 'success');
+          setTimeout(() => window.close(), 1500);
         }
       }
 
@@ -417,7 +418,8 @@ export function getEnhancePageHtml(): string {
           setStatus('正在提交…');
           await jsonFetch('/api/submit', { action, text });
           clearInterval(countdownTimer);
-          setStatus('完成！可以关闭此页面。', 'success');
+          setStatus('完成！页面即将关闭…', 'success');
+          setTimeout(() => window.close(), 1500);
         } catch (e) {
           const message = e && e.message ? e.message : String(e);
           setStatus(message, 'error');

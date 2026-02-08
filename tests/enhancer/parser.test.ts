@@ -42,8 +42,57 @@ Step 3: Connect API
     });
   });
 
-  describe('fallback behavior', () => {
-    it('should return trimmed full response when no tag found', () => {
+  describe('markdown code fence stripping', () => {
+    it('should strip ```xml fenced output', () => {
+      const response = '```xml\n<enhanced-prompt>Fenced content</enhanced-prompt>\n```';
+      expect(parseEnhancedPrompt(response)).toBe('Fenced content');
+    });
+
+    it('should strip bare ``` fenced output', () => {
+      const response = '```\n<enhanced-prompt>Bare fenced</enhanced-prompt>\n```';
+      expect(parseEnhancedPrompt(response)).toBe('Bare fenced');
+    });
+
+    it('should handle preamble + fenced output', () => {
+      const response =
+        'Here is the result:\n<enhanced-prompt>With preamble</enhanced-prompt>';
+      expect(parseEnhancedPrompt(response)).toBe('With preamble');
+    });
+  });
+
+  describe('leading preamble stripping', () => {
+    it('should strip "Here is..." preamble before tag', () => {
+      const response =
+        'Here is the enhanced prompt:\n<enhanced-prompt>Clean output</enhanced-prompt>';
+      expect(parseEnhancedPrompt(response)).toBe('Clean output');
+    });
+
+    it('should strip Chinese preamble before tag', () => {
+      const response =
+        '增强后的提示词如下：\n<enhanced-prompt>Clean Chinese output</enhanced-prompt>';
+      expect(parseEnhancedPrompt(response)).toBe('Clean Chinese output');
+    });
+  });
+
+  describe('fallback behavior with fallbackPrompt', () => {
+    it('should return fallbackPrompt when no tag found', () => {
+      const response = 'This is a plain response without XML tags';
+      expect(parseEnhancedPrompt(response, 'original prompt')).toBe('original prompt');
+    });
+
+    it('should return fallbackPrompt for empty tags', () => {
+      const response = '<enhanced-prompt></enhanced-prompt> Some other text';
+      expect(parseEnhancedPrompt(response, 'original prompt')).toBe('original prompt');
+    });
+
+    it('should trim fallbackPrompt', () => {
+      const response = 'no tags here';
+      expect(parseEnhancedPrompt(response, '  my original  ')).toBe('my original');
+    });
+  });
+
+  describe('legacy fallback (no fallbackPrompt)', () => {
+    it('should return trimmed full response when no tag found and no fallback', () => {
       const response = '  This is a plain response without XML tags  ';
       expect(parseEnhancedPrompt(response)).toBe(
         'This is a plain response without XML tags',
@@ -52,8 +101,6 @@ Step 3: Connect API
 
     it('should return trimmed response for empty tags', () => {
       const response = '<enhanced-prompt></enhanced-prompt> Some other text';
-      // Empty tag match -> extracted is empty string after trim -> falsy, moves to next pattern
-      // augment pattern also doesn't match -> fallback to full trim
       expect(parseEnhancedPrompt(response)).toBe(
         '<enhanced-prompt></enhanced-prompt> Some other text',
       );
@@ -83,6 +130,10 @@ Step 3: Connect API
       expect(parseEnhancedPrompt(response)).toBe(
         '请实现一个用户登录页面，支持 OAuth2 认证。',
       );
+    });
+
+    it('should handle whitespace-only fallback when no tag', () => {
+      expect(parseEnhancedPrompt('no tags', '   ')).toBe('');
     });
   });
 });
