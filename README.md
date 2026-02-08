@@ -134,6 +134,10 @@ cw search --information-request "数据库连接逻辑" --technical-terms "Datab
 
 ### 提示词增强
 
+<p align="center">
+  <img src="docs/prompt-enhancer-ui.png" alt="Prompt Enhancer Web UI" width="800" />
+</p>
+
 ```bash
 # 默认启动 Web UI 交互式编辑
 cw enhance "帮我实现一个带缓存的语义搜索"

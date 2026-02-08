@@ -134,6 +134,10 @@ cw search --information-request "Database connection logic" --technical-terms "D
 
 ### Prompt Enhancement
 
+<p align="center">
+  <img src="docs/prompt-enhancer-ui.png" alt="Prompt Enhancer Web UI" width="800" />
+</p>
+
 ```bash
 # Launch Web UI for interactive editing (default)
 cw enhance "Implement a cached semantic search"
