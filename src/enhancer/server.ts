@@ -240,10 +240,8 @@ export async function startEnhanceServer(
   const timeoutMs = 8 * 60 * 1000;
   const timeout = setTimeout(() => {
     if (resolved) return;
-    resolved = true;
-    server.close(() => {
-      rejectResult?.(new Error('User interaction timeout (8 minutes)'));
-    });
+    logger.info('会话超时，自动使用增强版结果');
+    finish(session.enhanced);
   }, timeoutMs);
 
   function abort(message: string): void {

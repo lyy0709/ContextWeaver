@@ -45,6 +45,7 @@ export function getEnhancePageHtml(): string {
         justify-content: space-between;
         gap: 16px;
         margin-bottom: 14px;
+        flex-wrap: wrap;
       }
 
       .title {
@@ -57,6 +58,8 @@ export function getEnhancePageHtml(): string {
         display: flex;
         align-items: center;
         gap: 14px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
 
       .countdown {
@@ -76,6 +79,7 @@ export function getEnhancePageHtml(): string {
         color: var(--muted2);
         text-align: right;
         line-height: 1.4;
+        word-break: break-word;
       }
 
       .panel {
@@ -84,27 +88,61 @@ export function getEnhancePageHtml(): string {
         border-radius: 14px;
         overflow: hidden;
         box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+        display: flex;
+        flex-direction: column;
       }
 
       .grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 0;
+        height: min(720px, calc(100vh - 240px));
+        height: min(720px, calc(100dvh - 240px));
         min-height: 520px;
       }
 
       @media (max-width: 920px) {
         .grid {
           grid-template-columns: 1fr;
+          height: auto;
+          min-height: 0;
+        }
+
+        .header-right {
+          width: 100%;
+          justify-content: flex-start;
+        }
+
+        .meta {
+          text-align: left;
         }
       }
 
       .col {
         padding: 14px;
         border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 0;
       }
       .col:last-child {
         border-right: none;
+      }
+
+      @media (max-width: 920px) {
+        .col {
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .col:last-child {
+          border-bottom: none;
+        }
+
+        textarea {
+          min-height: 320px;
+        }
       }
 
       .label {
@@ -114,14 +152,14 @@ export function getEnhancePageHtml(): string {
         gap: 12px;
         font-size: 12px;
         color: var(--muted);
-        margin: 4px 2px 10px;
+        margin: 4px 2px 0;
         letter-spacing: 0.5px;
       }
 
       textarea {
         width: 100%;
-        height: 100%;
-        min-height: 440px;
+        flex: 1;
+        min-height: 0;
         padding: 12px 12px;
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -131,29 +169,35 @@ export function getEnhancePageHtml(): string {
           'Courier New', monospace;
         font-size: 13px;
         line-height: 1.55;
-        resize: vertical;
+        resize: none;
         outline: none;
+        overflow: auto;
+        scrollbar-gutter: stable;
       }
 
       textarea:focus {
         border-color: rgba(255, 255, 255, 0.45);
-        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+        outline: 2px solid rgba(255, 255, 255, 0.28);
+        outline-offset: -2px;
       }
 
       .footer {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         gap: 12px;
         padding: 12px 14px;
         border-top: 1px solid var(--border);
         background: rgba(0, 0, 0, 0.5);
+        flex-wrap: wrap;
       }
 
       .hint {
         font-size: 12px;
         color: var(--muted2);
         line-height: 1.45;
+        flex: 1 1 260px;
+        min-width: 220px;
       }
 
       .buttons {
@@ -161,6 +205,18 @@ export function getEnhancePageHtml(): string {
         gap: 10px;
         flex-wrap: wrap;
         justify-content: flex-end;
+      }
+
+      @media (max-width: 520px) {
+        .buttons {
+          width: 100%;
+          justify-content: stretch;
+        }
+
+        .buttons button {
+          flex: 1 1 auto;
+          justify-content: center;
+        }
       }
 
       button {
@@ -295,7 +351,7 @@ export function getEnhancePageHtml(): string {
         if (remaining <= 0) {
           clearInterval(countdownTimer);
           countdownEl.textContent = '已超时';
-          setStatus('会话已超时，页面即将关闭。', 'error');
+          setStatus('会话超时，已自动采用增强版结果。', 'success');
         }
       }
 
@@ -313,6 +369,7 @@ export function getEnhancePageHtml(): string {
 
         const edited = (enhancedEl.value || '').trim() && enhancedEl.value !== baselineEnhanced;
         useEditedBtn.style.display = edited ? 'inline-block' : 'none';
+        useEditedBtn.disabled = !edited;
       }
 
       originalEl.addEventListener('input', updateCounts);

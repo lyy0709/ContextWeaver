@@ -1,6 +1,6 @@
 {
   "name": "@lyy0709/contextweaver",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A context weaving tool for LLMs — with Prompt Enhancer",
   "license": "MIT",
   "author": "lyy0709",
