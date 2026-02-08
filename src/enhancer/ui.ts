@@ -1,24 +1,24 @@
 export function getEnhancePageHtml(): string {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ContextWeaver Prompt Enhancer</title>
+    <title>ContextWeaver 提示词增强</title>
     <style>
       :root {
-        --bg: #0b0f19;
-        --panel: #111827;
-        --border: rgba(255, 255, 255, 0.12);
+        --bg: #000;
+        --panel: #0a0a0a;
+        --border: rgba(255, 255, 255, 0.15);
         --text: rgba(255, 255, 255, 0.92);
-        --muted: rgba(255, 255, 255, 0.72);
-        --muted2: rgba(255, 255, 255, 0.56);
-        --btn: rgba(255, 255, 255, 0.14);
-        --btnHover: rgba(255, 255, 255, 0.22);
-        --primary: #2563eb;
-        --primaryHover: #1d4ed8;
-        --danger: #ef4444;
-        --dangerHover: #dc2626;
+        --muted: rgba(255, 255, 255, 0.6);
+        --muted2: rgba(255, 255, 255, 0.4);
+        --btn: rgba(255, 255, 255, 0.1);
+        --btnHover: rgba(255, 255, 255, 0.18);
+        --primary: #fff;
+        --primaryText: #000;
+        --danger: rgba(255, 255, 255, 0.06);
+        --dangerBorder: rgba(255, 255, 255, 0.25);
       }
 
       * {
@@ -28,10 +28,8 @@ export function getEnhancePageHtml(): string {
       body {
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-          'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji';
-        background: radial-gradient(800px circle at 0% 0%, rgba(37, 99, 235, 0.25), transparent 45%),
-          radial-gradient(800px circle at 100% 0%, rgba(99, 102, 241, 0.18), transparent 45%),
-          var(--bg);
+          'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+        background: var(--bg);
         color: var(--text);
       }
 
@@ -55,6 +53,24 @@ export function getEnhancePageHtml(): string {
         letter-spacing: 0.2px;
       }
 
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .countdown {
+        font-size: 12px;
+        color: var(--muted2);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .countdown.warn {
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 600;
+      }
+
       .meta {
         font-size: 12px;
         color: var(--muted2);
@@ -63,11 +79,11 @@ export function getEnhancePageHtml(): string {
       }
 
       .panel {
-        background: rgba(17, 24, 39, 0.92);
+        background: var(--panel);
         border: 1px solid var(--border);
         border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
       }
 
       .grid {
@@ -99,8 +115,7 @@ export function getEnhancePageHtml(): string {
         font-size: 12px;
         color: var(--muted);
         margin: 4px 2px 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
+        letter-spacing: 0.5px;
       }
 
       textarea {
@@ -110,7 +125,7 @@ export function getEnhancePageHtml(): string {
         padding: 12px 12px;
         border: 1px solid var(--border);
         border-radius: 10px;
-        background: rgba(0, 0, 0, 0.28);
+        background: rgba(255, 255, 255, 0.04);
         color: var(--text);
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
           'Courier New', monospace;
@@ -121,8 +136,8 @@ export function getEnhancePageHtml(): string {
       }
 
       textarea:focus {
-        border-color: rgba(37, 99, 235, 0.7);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
+        border-color: rgba(255, 255, 255, 0.45);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
       }
 
       .footer {
@@ -132,7 +147,7 @@ export function getEnhancePageHtml(): string {
         gap: 12px;
         padding: 12px 14px;
         border-top: 1px solid var(--border);
-        background: rgba(17, 24, 39, 0.98);
+        background: rgba(0, 0, 0, 0.5);
       }
 
       .hint {
@@ -172,19 +187,19 @@ export function getEnhancePageHtml(): string {
 
       .primary {
         background: var(--primary);
-        border-color: rgba(255, 255, 255, 0.15);
+        color: var(--primaryText);
+        border-color: var(--primary);
       }
       .primary:hover {
-        background: var(--primaryHover);
+        background: rgba(255, 255, 255, 0.85);
       }
 
       .danger {
-        background: rgba(239, 68, 68, 0.12);
-        border-color: rgba(239, 68, 68, 0.4);
+        background: var(--danger);
+        border-color: var(--dangerBorder);
       }
       .danger:hover {
-        background: rgba(239, 68, 68, 0.18);
-        border-color: rgba(239, 68, 68, 0.5);
+        background: rgba(255, 255, 255, 0.12);
       }
 
       .status {
@@ -194,11 +209,11 @@ export function getEnhancePageHtml(): string {
       }
 
       .status.error {
-        color: rgba(248, 113, 113, 0.98);
+        color: rgba(255, 120, 120, 0.95);
       }
 
       .status.success {
-        color: rgba(34, 197, 94, 0.98);
+        color: rgba(255, 255, 255, 0.8);
       }
 
       .loading {
@@ -209,39 +224,42 @@ export function getEnhancePageHtml(): string {
   <body>
     <div class="container">
       <div class="header">
-        <div class="title">ContextWeaver Prompt Enhancer</div>
-        <div class="meta" id="meta">Loading…</div>
+        <div class="title">ContextWeaver 提示词增强</div>
+        <div class="header-right">
+          <div class="countdown" id="countdown"></div>
+          <div class="meta" id="meta">加载中…</div>
+        </div>
       </div>
 
       <div class="panel">
         <div class="grid">
           <div class="col">
             <div class="label">
-              <span>Original prompt (editable)</span>
-              <span id="origCount">0 chars</span>
+              <span>原始提示词（可编辑）</span>
+              <span id="origCount">0 字符</span>
             </div>
-            <textarea id="original" spellcheck="false" aria-label="Original prompt"></textarea>
+            <textarea id="original" spellcheck="false" aria-label="原始提示词"></textarea>
           </div>
           <div class="col">
             <div class="label">
-              <span>Enhanced prompt (editable)</span>
-              <span id="enhCount">0 chars</span>
+              <span>增强后提示词（可编辑）</span>
+              <span id="enhCount">0 字符</span>
             </div>
-            <textarea id="enhanced" spellcheck="false" aria-label="Enhanced prompt"></textarea>
+            <textarea id="enhanced" spellcheck="false" aria-label="增强后提示词"></textarea>
           </div>
         </div>
 
         <div class="footer">
           <div class="hint">
-            Tip: edit left box, click Re-enhance; tweak right box, click Use Edited.
+            提示：编辑左栏后点击「重新增强」；微调右栏后点击「使用编辑版」。
             <div class="status" id="status"></div>
           </div>
           <div class="buttons">
-            <button id="useOriginalBtn">Use Original</button>
-            <button id="reEnhanceBtn">Re-enhance</button>
-            <button class="danger" id="cancelBtn">Cancel</button>
-            <button id="useEditedBtn" style="display: none">Use Edited</button>
-            <button class="primary" id="useEnhancedBtn">Use Enhanced</button>
+            <button id="useOriginalBtn">使用原始</button>
+            <button id="reEnhanceBtn">重新增强</button>
+            <button class="danger" id="cancelBtn">取消</button>
+            <button id="useEditedBtn" style="display: none">使用编辑版</button>
+            <button class="primary" id="useEnhancedBtn">使用增强版</button>
           </div>
         </div>
       </div>
@@ -259,8 +277,30 @@ export function getEnhancePageHtml(): string {
       const origCountEl = document.getElementById('origCount');
       const enhCountEl = document.getElementById('enhCount');
       const cancelBtn = document.getElementById('cancelBtn');
+      const countdownEl = document.getElementById('countdown');
 
       let baselineEnhanced = '';
+      const TIMEOUT_MS = 8 * 60 * 1000;
+      const startTime = Date.now();
+      let countdownTimer;
+
+      function updateCountdown() {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, TIMEOUT_MS - elapsed);
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        const str = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        countdownEl.textContent = '剩余 ' + str;
+        countdownEl.className = remaining <= 60000 ? 'countdown warn' : 'countdown';
+        if (remaining <= 0) {
+          clearInterval(countdownTimer);
+          countdownEl.textContent = '已超时';
+          setStatus('会话已超时，页面即将关闭。', 'error');
+        }
+      }
+
+      countdownTimer = setInterval(updateCountdown, 1000);
+      updateCountdown();
 
       function setStatus(message, kind) {
         statusEl.textContent = message || '';
@@ -268,8 +308,8 @@ export function getEnhancePageHtml(): string {
       }
 
       function updateCounts() {
-        origCountEl.textContent = (originalEl.value || '').length + ' chars';
-        enhCountEl.textContent = (enhancedEl.value || '').length + ' chars';
+        origCountEl.textContent = (originalEl.value || '').length + ' 字符';
+        enhCountEl.textContent = (enhancedEl.value || '').length + ' 字符';
 
         const edited = (enhancedEl.value || '').trim() && enhancedEl.value !== baselineEnhanced;
         useEditedBtn.style.display = edited ? 'inline-block' : 'none';
@@ -286,28 +326,26 @@ export function getEnhancePageHtml(): string {
         });
         const data = await res.json();
         if (!res.ok || data.error) {
-          throw new Error(data.error || 'Request failed');
+          throw new Error(data.error || '请求失败');
         }
         return data;
       }
 
-
       async function loadSession() {
-        setStatus('Loading session…');
+        setStatus('正在加载会话…');
         const res = await fetch('/api/session');
         const data = await res.json();
         if (!res.ok || data.error) {
-          throw new Error(data.error || 'Load failed');
+          throw new Error(data.error || '加载失败');
         }
 
         originalEl.value = data.original || '';
         enhancedEl.value = data.enhanced || '';
         baselineEnhanced = enhancedEl.value;
 
-
         metaEl.textContent =
-          'Endpoint: ' + (data.endpoint || '-') + ' | Model: ' + (data.model || '-');
-        setStatus('Ready.');
+          '端点: ' + (data.endpoint || '-') + ' | 模型: ' + (data.model || '-');
+        setStatus('就绪。');
         updateCounts();
       }
 
@@ -319,9 +357,10 @@ export function getEnhancePageHtml(): string {
         cancelBtn.disabled = true;
 
         try {
-          setStatus('Submitting…');
+          setStatus('正在提交…');
           await jsonFetch('/api/submit', { action, text });
-          setStatus('Done! You can close this tab.', 'success');
+          clearInterval(countdownTimer);
+          setStatus('完成！可以关闭此页面。', 'success');
         } catch (e) {
           const message = e && e.message ? e.message : String(e);
           setStatus(message, 'error');
@@ -342,7 +381,7 @@ export function getEnhancePageHtml(): string {
       reEnhanceBtn.addEventListener('click', async () => {
         const current = (originalEl.value || '').trim();
         if (!current) {
-          setStatus('Original prompt is empty.', 'error');
+          setStatus('原始提示词为空。', 'error');
           return;
         }
 
@@ -352,13 +391,13 @@ export function getEnhancePageHtml(): string {
         reEnhanceBtn.disabled = true;
         cancelBtn.disabled = true;
         document.body.classList.add('loading');
-        setStatus('Enhancing…');
+        setStatus('正在增强…');
 
         try {
           const data = await jsonFetch('/api/re-enhance', { prompt: current });
           enhancedEl.value = data.enhanced;
           baselineEnhanced = enhancedEl.value;
-          setStatus('Enhanced. You can keep editing or submit.', 'success');
+          setStatus('增强完成，可继续编辑或提交。', 'success');
           updateCounts();
         } catch (e) {
           const message = e && e.message ? e.message : String(e);
@@ -376,7 +415,7 @@ export function getEnhancePageHtml(): string {
       loadSession().catch((e) => {
         const message = e && e.message ? e.message : String(e);
         setStatus(message, 'error');
-        metaEl.textContent = 'Failed to load.';
+        metaEl.textContent = '加载失败';
       });
     </script>
   </body>
