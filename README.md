@@ -5,10 +5,16 @@
 </p>
 
 <p align="center">
-  <em>Semantic Code Retrieval for AI Agents — Hybrid Search • Graph Expansion • Token-Aware Packing</em>
+  <em>Semantic Code Retrieval for AI Agents — Hybrid Search • Graph Expansion • Token-Aware Packing • Prompt Enhancer</em>
+</p>
+
+<p align="center">
+  <a href="./README.en.md">English</a> | 中文
 </p>
 
 ---
+
+> **Fork 说明**：本项目 fork 自 [hsingjui/ContextWeaver](https://github.com/hsingjui/ContextWeaver)，新增了 **Prompt Enhancer（提示词增强）** 功能，支持 OpenAI / Claude / Gemini 多 LLM 端点、CLI 命令行、Web UI 交互三种使用方式。
 
 **ContextWeaver** 是一个专为 AI 代码助手设计的语义检索引擎，采用混合搜索（向量 + 词法）、智能上下文扩展和 Token 感知打包策略，为 LLM 提供精准、相关且上下文完整的代码片段。
 
@@ -24,7 +30,7 @@
 - **RRF 融合 (Reciprocal Rank Fusion)**：智能融合多路召回结果
 
 ### 🧠 AST 语义分片
-- **Tree-sitter 解析**：支持 TypeScript、JavaScript、Python、Go、Java、Rust 六大语言
+- **Tree-sitter 解析**：支持 TypeScript、JavaScript、Python、Go、Java、Rust、C、C++、C# 九大语言
 - **Dual-Text 策略**：`displayCode` 用于展示，`vectorText` 用于 Embedding
 - **Gap-Aware 合并**：智能处理代码间隙，保持语义完整性
 - **Breadcrumb 注入**：向量文本包含层级路径，提升检索召回率
@@ -43,6 +49,12 @@
 - **MCP Server 模式**：一键启动 Model Context Protocol 服务端
 - **Zen Design 理念**：意图与术语分离，LLM 友好的 API 设计
 - **自动索引**：首次查询自动触发索引，增量更新透明无感
+
+### ✏️ Prompt Enhancer（提示词增强）
+- **多 LLM 支持**：OpenAI / Claude / Gemini 一键切换
+- **三种交互方式**：MCP 工具调用、CLI 命令行、Web UI 浏览器交互
+- **自动语言检测**：中文输入自动用中文回复
+- **可自定义模板**：支持自定义增强提示词模板
 
 ## 📦 快速开始
 
@@ -90,11 +102,11 @@ RERANK_TOP_N=20
 # IGNORE_PATTERNS=.venv,node_modules
 
 # Prompt Enhancer 配置（可选，使用 enhance / enhance-prompt 时需要）
-# PROMPT_ENHANCER_ENDPOINT=openai
-# PROMPT_ENHANCER_BASE_URL=
-# PROMPT_ENHANCER_TOKEN=your-api-key-here
-# PROMPT_ENHANCER_MODEL=
-# PROMPT_ENHANCER_TEMPLATE=
+# PROMPT_ENHANCER_ENDPOINT=openai          # 端点：openai / claude / gemini
+# PROMPT_ENHANCER_BASE_URL=                # 自定义 API 地址（代理等场景）
+# PROMPT_ENHANCER_TOKEN=your-api-key-here  # API 密钥（必填）
+# PROMPT_ENHANCER_MODEL=                   # 自定义模型
+# PROMPT_ENHANCER_TEMPLATE=                # 自定义增强模板文件路径
 ```
 
 ### 索引代码库
@@ -120,7 +132,7 @@ cw search --information-request "用户认证流程是如何实现的？"
 cw search --information-request "数据库连接逻辑" --technical-terms "DatabasePool,Connection"
 ```
 
-### 提示词增强（可选）
+### 提示词增强
 
 ```bash
 # 默认启动 Web UI 交互式编辑
@@ -142,9 +154,9 @@ contextweaver mcp
 
 ## 🔧 MCP 集成配置
 
-### Claude Desktop 配置
+### Claude Desktop / Claude Code 配置
 
-在 Claude Desktop 的配置文件中添加：
+在配置文件中添加：
 
 ```json
 {
@@ -183,8 +195,16 @@ ContextWeaver 提供两个 MCP 工具：
 | 参数 | 类型 | 必需 | 描述 |
 |------|------|------|------|
 | `prompt` | string | ✅ | 原始提示词 |
-| `conversation_history` | string | ❌ | 对话历史（可选） |
-| `project_root_path` | string | ❌ | 项目根目录（可选） |
+| `conversation_history` | string | ❌ | 对话历史（格式：`User: ...\nAssistant: ...`） |
+| `project_root_path` | string | ❌ | 项目根目录路径 |
+
+#### Prompt Enhancer 端点默认值
+
+| 端点 | 默认 Base URL | 默认模型 |
+|------|--------------|---------|
+| `openai` | `https://api.openai.com/v1/chat/completions` | `gpt-4o-mini` |
+| `claude` | `https://api.anthropic.com/v1/messages` | `claude-sonnet-4-20250514` |
+| `gemini` | `https://generativelanguage.googleapis.com/v1beta` | `gemini-2.0-flash` |
 
 ## 🏗️ 架构设计
 
@@ -218,7 +238,16 @@ flowchart TB
         CR[Crawler<br/>fdir] --> SS[SemanticSplitter<br/>Tree-sitter] --> IX[Indexer<br/>Batch Embedding]
     end
 
+    subgraph Enhancer["Prompt Enhancer"]
+        PE[enhancePrompt]
+        LLM[LLM Adapters<br/>OpenAI / Claude / Gemini]
+        WEB[Web UI Server]
+        PE --> LLM
+        PE --> WEB
+    end
+
     Interface --> Search
+    Interface --> Enhancer
     RRF --> GE
     Search <--> Storage
     Expand <--> Storage
@@ -235,6 +264,7 @@ flowchart TB
 | **VectorStore** | LanceDB 适配层，管理向量索引的增删改查 |
 | **SQLite (FTS5)** | 元数据存储 + 全文搜索索引 |
 | **SemanticSplitter** | AST 语义分片器，基于 Tree-sitter 解析 |
+| **Prompt Enhancer** | 提示词增强，多 LLM 适配，Web UI 交互 |
 
 ## 📁 项目结构
 
@@ -250,7 +280,7 @@ contextweaver/
 │   │   ├── SemanticSplitter.ts   # AST 语义分片器
 │   │   ├── SourceAdapter.ts      # 源码适配器
 │   │   ├── LanguageSpec.ts       # 语言规范定义
-│   │   └── ParserPool.ts         # Tree-sitter 解析器池
+│   │   └── ParserPool.ts        # Tree-sitter 解析器池
 │   ├── scanner/              # 文件扫描
 │   │   ├── crawler.ts        # 文件系统遍历
 │   │   ├── processor.ts      # 文件处理
@@ -269,20 +299,31 @@ contextweaver/
 │   │   ├── config.ts         # 搜索配置
 │   │   ├── types.ts          # 类型定义
 │   │   └── resolvers/        # 多语言 Import 解析器
-│   │       ├── JsTsResolver.ts
-│   │       ├── PythonResolver.ts
-│   │       ├── GoResolver.ts
-│   │       ├── JavaResolver.ts
-│   │       └── RustResolver.ts
+│   ├── enhancer/             # Prompt Enhancer（提示词增强）
+│   │   ├── index.ts          # 增强服务编排
+│   │   ├── template.ts       # 模板管理
+│   │   ├── detect.ts         # 语言检测
+│   │   ├── parser.ts         # 响应解析
+│   │   ├── llmClient.ts      # LLM 客户端接口 + 工厂
+│   │   ├── server.ts         # Web UI HTTP 服务器
+│   │   ├── ui.ts             # 前端页面模板
+│   │   ├── browser.ts        # 浏览器启动
+│   │   └── adapters/         # LLM API 适配器
+│   │       ├── openai.ts
+│   │       ├── claude.ts
+│   │       └── gemini.ts
 │   ├── mcp/                  # MCP 服务端
 │   │   ├── server.ts         # MCP 服务器实现
 │   │   ├── main.ts           # MCP 入口
 │   │   └── tools/
-│   │       └── codebaseRetrieval.ts  # 代码检索工具
+│   │       ├── codebaseRetrieval.ts  # 代码检索工具
+│   │       └── enhancePrompt.ts      # 提示词增强工具
 │   └── utils/                # 工具函数
 │       └── logger.ts         # 日志系统
+├── tests/                    # 单元测试
 ├── package.json
-└── tsconfig.json
+├── tsconfig.json
+└── vitest.config.ts
 ```
 
 ## ⚙️ 配置详解
@@ -301,6 +342,11 @@ contextweaver/
 | `RERANK_MODEL` | ✅ | - | Reranker 模型名称 |
 | `RERANK_TOP_N` | ❌ | 20 | Rerank 返回数量 |
 | `IGNORE_PATTERNS` | ❌ | - | 额外忽略模式 |
+| `PROMPT_ENHANCER_ENDPOINT` | ❌ | `openai` | 增强端点（openai/claude/gemini） |
+| `PROMPT_ENHANCER_TOKEN` | ❌* | - | 增强 API 密钥（*使用 enhance 时必填） |
+| `PROMPT_ENHANCER_BASE_URL` | ❌ | 按端点 | 自定义增强 API 地址 |
+| `PROMPT_ENHANCER_MODEL` | ❌ | 按端点 | 自定义增强模型 |
+| `PROMPT_ENHANCER_TEMPLATE` | ❌ | - | 自定义增强模板路径 |
 
 ### 搜索配置参数
 
@@ -350,6 +396,9 @@ ContextWeaver 通过 Tree-sitter 原生支持以下编程语言的 AST 解析：
 | Go | ✅ | ✅ | `.go` |
 | Java | ✅ | ✅ | `.java` |
 | Rust | ✅ | ✅ | `.rs` |
+| C | ✅ | ✅ | `.c`, `.h` |
+| C++ | ✅ | ✅ | `.cpp`, `.hpp`, `.cc`, `.cxx` |
+| C# | ✅ | ✅ | `.cs` |
 
 其他语言会采用基于行的 Fallback 分片策略，仍可正常索引和搜索。
 
@@ -386,6 +435,16 @@ ContextWeaver 通过 Tree-sitter 原生支持以下编程语言的 AST 解析：
 - **连接池复用**：Tree-sitter 解析器池化复用
 - **文件索引缓存**：GraphExpander 文件路径索引 lazy load
 
+## 🧪 测试
+
+```bash
+# 运行测试
+pnpm test
+
+# 监听模式
+pnpm test:watch
+```
+
 ## 🐛 日志与调试
 
 日志文件位置：`~/.contextweaver/logs/app.YYYY-MM-DD.log`
@@ -403,6 +462,7 @@ LOG_LEVEL=debug contextweaver search --information-request "..."
 
 ## 🙏 致谢
 
+- [hsingjui/ContextWeaver](https://github.com/hsingjui/ContextWeaver) - 原始项目
 - [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) - 高性能语法解析
 - [LanceDB](https://lancedb.com/) - 嵌入式向量数据库
 - [MCP](https://modelcontextprotocol.io/) - Model Context Protocol
