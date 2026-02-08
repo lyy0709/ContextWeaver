@@ -8,7 +8,12 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../utils/logger.js';
-import { codebaseRetrievalSchema, handleCodebaseRetrieval } from './tools/index.js';
+import {
+  codebaseRetrievalSchema,
+  enhancePromptSchema,
+  handleCodebaseRetrieval,
+  handleEnhancePrompt,
+} from './tools/index.js';
 
 // ===========================================
 // 服务器配置
@@ -85,6 +90,38 @@ Examples of BAD queries:
       required: ['repo_path', 'information_request'],
     },
   },
+  {
+    name: 'enhance-prompt',
+    description: `
+Enhance a user prompt by calling an external LLM API.
+
+Use this tool when you want to turn a rough requirement into a clearer, more specific, and actionable prompt.
+
+Features:
+- Customizable template via env var
+- Automatic language detection (Chinese input -> Chinese output)
+- Optional conversation history support
+`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'string',
+          description: 'The original prompt to enhance',
+        },
+        conversation_history: {
+          type: 'string',
+          description:
+            "Recent conversation history for context. Format: 'User: ...\\nAssistant: ...'",
+        },
+        project_root_path: {
+          type: 'string',
+          description: 'Project root path for context',
+        },
+      },
+      required: ['prompt'],
+    },
+  },
 ];
 
 // ===========================================
@@ -150,6 +187,10 @@ export async function startMcpServer(): Promise<void> {
         case 'codebase-retrieval': {
           const parsed = codebaseRetrievalSchema.parse(args);
           return await handleCodebaseRetrieval(parsed, undefined, onProgress);
+        }
+        case 'enhance-prompt': {
+          const parsed = enhancePromptSchema.parse(args);
+          return await handleEnhancePrompt(parsed);
         }
         default:
           throw new Error(`Unknown tool: ${name}`);

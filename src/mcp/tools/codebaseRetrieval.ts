@@ -105,6 +105,13 @@ RERANK_TOP_N=20
 
 # 索引忽略模式（可选，逗号分隔，默认已包含常见忽略项）
 # IGNORE_PATTERNS=.venv,node_modules
+
+# Prompt Enhancer 配置（可选，使用 enhance-prompt 工具时需要）
+# PROMPT_ENHANCER_ENDPOINT=openai
+# PROMPT_ENHANCER_BASE_URL=
+# PROMPT_ENHANCER_TOKEN=your-api-key-here
+# PROMPT_ENHANCER_MODEL=
+# PROMPT_ENHANCER_TEMPLATE=
 `;
 
   fs.writeFileSync(envFile, defaultEnvContent);

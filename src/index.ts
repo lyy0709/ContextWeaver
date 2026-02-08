@@ -71,6 +71,13 @@ RERANK_TOP_N=20
 
 # 索引忽略模式（可选，逗号分隔，默认已包含常见忽略项）
 # IGNORE_PATTERNS=.venv,node_modules
+
+# Prompt Enhancer 配置（可选，使用 enhance 命令时需要）
+# PROMPT_ENHANCER_ENDPOINT=openai
+# PROMPT_ENHANCER_BASE_URL=
+# PROMPT_ENHANCER_TOKEN=your-api-key-here
+# PROMPT_ENHANCER_MODEL=
+# PROMPT_ENHANCER_TEMPLATE=
 `;
   try {
     await fs.writeFile(envFile, defaultEnvContent);
@@ -146,6 +153,62 @@ cli.command('mcp', '启动 MCP 服务器').action(async () => {
     process.exit(1);
   }
 });
+
+cli
+  .command('enhance <prompt>', '增强提示词')
+  .option('--no-browser', '直接输出到终端，不启动浏览器')
+  .option('--endpoint <type>', '指定 API 端点 (openai/claude/gemini)')
+  .action(
+    async (
+      prompt: string,
+      options: {
+        browser?: boolean;
+        endpoint?: string;
+      },
+    ) => {
+      const endpointRaw = options.endpoint?.toLowerCase();
+      const endpointOverride =
+        endpointRaw === 'openai' || endpointRaw === 'claude' || endpointRaw === 'gemini'
+          ? endpointRaw
+          : undefined;
+
+      if (options.browser === false) {
+        const { enhancePrompt } = await import('./enhancer/index.js');
+        try {
+          const result = await enhancePrompt({ prompt, endpointOverride });
+          process.stdout.write(`${result.enhanced}\n`);
+        } catch (err) {
+          const error = err as { message?: string; stack?: string };
+          logger.error(
+            { error: error.message, stack: error.stack },
+            `enhance 失败: ${error.message}`,
+          );
+          process.exit(1);
+        }
+        return;
+      }
+
+      const { startEnhanceServer } = await import('./enhancer/server.js');
+      const { openBrowser } = await import('./enhancer/browser.js');
+
+      try {
+        const result = await startEnhanceServer(prompt, {
+          endpointOverride,
+          onStarted: (url) => {
+            openBrowser(url);
+          },
+        });
+        process.stdout.write(`${result.enhanced}\n`);
+      } catch (err) {
+        const error = err as { message?: string; stack?: string };
+        logger.error(
+          { error: error.message, stack: error.stack },
+          `enhance 失败: ${error.message}`,
+        );
+        process.exit(1);
+      }
+    },
+  );
 
 cli
   .command('search', '本地检索（参数对齐 MCP）')

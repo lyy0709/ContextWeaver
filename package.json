@@ -1,14 +1,14 @@
 {
-  "name": "@hsingjui/contextweaver",
-  "version": "0.0.7",
-  "description": "A context weaving tool for LLMs",
+  "name": "@lyy0709/contextweaver",
+  "version": "1.0.0",
+  "description": "A context weaving tool for LLMs — with Prompt Enhancer",
   "license": "MIT",
-  "author": "hsingjui",
+  "author": "lyy0709",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hsingjui/ContextWeaver.git"
+    "url": "git+https://github.com/lyy0709/ContextWeaver.git"
   },
-  "homepage": "https://github.com/hsingjui/ContextWeaver#readme",
+  "homepage": "https://github.com/lyy0709/ContextWeaver#readme",
   "private": false,
   "type": "module",
   "bin": {
@@ -26,7 +26,9 @@
     "build": "tsup src/index.ts src/mcp/main.ts --format esm --dts --out-dir dist --sourcemap --clean",
     "build:release": "tsup src/index.ts src/mcp/main.ts --format esm --dts --out-dir dist --clean",
     "dev": "tsup src/index.ts src/mcp/main.ts --format esm --dts --out-dir dist --sourcemap --watch",
-    "fmt": "biome check --write ./src"
+    "fmt": "biome check --write ./src",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@keqingmoe/tree-sitter": "^0.26.2",
@@ -58,7 +60,8 @@
     "@types/node": "^24.0.0",
     "knip": "^5.78.0",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

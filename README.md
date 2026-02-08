@@ -54,11 +54,11 @@
 ### 安装
 
 ```bash
-# 全局安装
-npm install -g @hsingjui/contextweaver
+# 全局安装（带 Prompt Enhancer 的增强版）
+npm install -g @lyy0709/contextweaver
 
 # 或使用 pnpm
-pnpm add -g @hsingjui/contextweaver
+pnpm add -g @lyy0709/contextweaver
 ```
 
 ### 初始化配置
@@ -88,6 +88,13 @@ RERANK_TOP_N=20
 
 # 忽略模式（可选，逗号分隔）
 # IGNORE_PATTERNS=.venv,node_modules
+
+# Prompt Enhancer 配置（可选，使用 enhance / enhance-prompt 时需要）
+# PROMPT_ENHANCER_ENDPOINT=openai
+# PROMPT_ENHANCER_BASE_URL=
+# PROMPT_ENHANCER_TOKEN=your-api-key-here
+# PROMPT_ENHANCER_MODEL=
+# PROMPT_ENHANCER_TEMPLATE=
 ```
 
 ### 索引代码库
@@ -111,6 +118,19 @@ cw search --information-request "用户认证流程是如何实现的？"
 
 # 带精确术语
 cw search --information-request "数据库连接逻辑" --technical-terms "DatabasePool,Connection"
+```
+
+### 提示词增强（可选）
+
+```bash
+# 默认启动 Web UI 交互式编辑
+cw enhance "帮我实现一个带缓存的语义搜索"
+
+# 直接输出到 stdout
+cw enhance "帮我实现一个带缓存的语义搜索" --no-browser
+
+# 临时指定端点（openai/claude/gemini）
+cw enhance "帮我实现一个带缓存的语义搜索" --endpoint claude --no-browser
 ```
 
 ### 启动 MCP 服务器
@@ -139,9 +159,12 @@ contextweaver mcp
 
 ### MCP 工具说明
 
-ContextWeaver 提供一个核心 MCP 工具：`codebase-retrieval`
+ContextWeaver 提供两个 MCP 工具：
 
-#### 参数说明
+- `codebase-retrieval`：代码库检索（主工具）
+- `enhance-prompt`：提示词增强（可选，需要额外配置外部 LLM API）
+
+#### `codebase-retrieval` 参数说明
 
 | 参数 | 类型 | 必需 | 描述 |
 |------|------|------|------|
@@ -154,6 +177,14 @@ ContextWeaver 提供一个核心 MCP 工具：`codebase-retrieval`
 - **意图与术语分离**：`information_request` 描述「做什么」，`technical_terms` 过滤「叫什么」
 - **黄金默认值**：提供同文件上下文，禁止默认跨文件抓取
 - **回归代理本能**：工具只负责定位，跨文件探索由 Agent 自主发起
+
+#### `enhance-prompt` 参数说明
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `prompt` | string | ✅ | 原始提示词 |
+| `conversation_history` | string | ❌ | 对话历史（可选） |
+| `project_root_path` | string | ❌ | 项目根目录（可选） |
 
 ## 🏗️ 架构设计
 

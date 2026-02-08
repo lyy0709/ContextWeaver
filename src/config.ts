@@ -68,6 +68,14 @@ export interface RerankerConfig {
   topN: number;
 }
 
+export interface EnhancerConfig {
+  endpoint: 'openai' | 'claude' | 'gemini';
+  baseUrl: string;
+  apiKey: string;
+  model?: string;
+  templatePath?: string;
+}
+
 // API 配置获取
 
 /**
@@ -132,6 +140,24 @@ export function checkRerankerEnv(): EnvCheckResult {
 }
 
 /**
+ * 检查 Prompt Enhancer 相关环境变量是否已配置（不抛出错误）
+ * @returns 检查结果，包含是否有效和缺失的变量列表
+ */
+export function checkEnhancerEnv(): EnvCheckResult {
+  const missingVars: string[] = [];
+
+  const apiKey = process.env.PROMPT_ENHANCER_TOKEN;
+  if (!apiKey || apiKey === DEFAULT_API_KEY_PLACEHOLDER) {
+    missingVars.push('PROMPT_ENHANCER_TOKEN');
+  }
+
+  return {
+    isValid: missingVars.length === 0,
+    missingVars,
+  };
+}
+
+/**
  * 获取 Embedding 配置
  * @throws 如果必需的配置项缺失
  */
@@ -187,6 +213,49 @@ export function getRerankerConfig(): RerankerConfig {
     baseUrl,
     model,
     topN: Number.isNaN(topN) ? 10 : topN,
+  };
+}
+
+/**
+ * 获取 Prompt Enhancer 配置
+ * @throws 如果必需的配置项缺失
+ */
+export function getEnhancerConfig(): EnhancerConfig {
+  const endpointRaw = process.env.PROMPT_ENHANCER_ENDPOINT || 'openai';
+  const endpoint = endpointRaw.toLowerCase();
+
+  if (endpoint !== 'openai' && endpoint !== 'claude' && endpoint !== 'gemini') {
+    throw new Error(
+      `PROMPT_ENHANCER_ENDPOINT 环境变量无效: ${endpointRaw} (仅支持 openai/claude/gemini)`,
+    );
+  }
+
+  const defaultBaseUrlByEndpoint: Record<EnhancerConfig['endpoint'], string> = {
+    openai: 'https://api.openai.com/v1/chat/completions',
+    claude: 'https://api.anthropic.com/v1/messages',
+    gemini: 'https://generativelanguage.googleapis.com/v1beta',
+  };
+
+  const defaultModelByEndpoint: Record<EnhancerConfig['endpoint'], string> = {
+    openai: 'gpt-4o-mini',
+    claude: 'claude-sonnet-4-20250514',
+    gemini: 'gemini-2.0-flash',
+  };
+
+  const apiKey = process.env.PROMPT_ENHANCER_TOKEN;
+  if (!apiKey) {
+    throw new Error('PROMPT_ENHANCER_TOKEN 环境变量未设置');
+  }
+
+  const model = process.env.PROMPT_ENHANCER_MODEL || defaultModelByEndpoint[endpoint];
+  const baseUrl = process.env.PROMPT_ENHANCER_BASE_URL || defaultBaseUrlByEndpoint[endpoint];
+
+  return {
+    endpoint,
+    apiKey,
+    baseUrl,
+    model,
+    templatePath: process.env.PROMPT_ENHANCER_TEMPLATE,
   };
 }
 
