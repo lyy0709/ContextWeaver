@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   DEFAULT_TEMPLATE,
+  DEFAULT_TEMPLATE_EN,
+  DEFAULT_TEMPLATE_ZH,
   getTemplatePathOrInline,
   loadTemplate,
   renderPrompt,
@@ -38,14 +40,19 @@ describe('getTemplatePathOrInline', () => {
 });
 
 describe('loadTemplate', () => {
-  it('should return DEFAULT_TEMPLATE when no path provided', async () => {
+  it('should return DEFAULT_TEMPLATE_ZH when no path and no language provided', async () => {
     const result = await loadTemplate();
-    expect(result).toBe(DEFAULT_TEMPLATE);
+    expect(result).toBe(DEFAULT_TEMPLATE_ZH);
   });
 
-  it('should return DEFAULT_TEMPLATE when path is undefined', async () => {
-    const result = await loadTemplate(undefined);
-    expect(result).toBe(DEFAULT_TEMPLATE);
+  it('should return DEFAULT_TEMPLATE_EN when language is en', async () => {
+    const result = await loadTemplate(undefined, 'en');
+    expect(result).toBe(DEFAULT_TEMPLATE_EN);
+  });
+
+  it('should return DEFAULT_TEMPLATE_ZH when language is zh', async () => {
+    const result = await loadTemplate(undefined, 'zh');
+    expect(result).toBe(DEFAULT_TEMPLATE_ZH);
   });
 
   it('should return inline template when template contains newlines', async () => {
@@ -54,9 +61,11 @@ describe('loadTemplate', () => {
     expect(result).toBe(inline);
   });
 
-  it('should fallback to DEFAULT_TEMPLATE when file does not exist', async () => {
+  it('should fallback to language-appropriate default when file does not exist', async () => {
     const result = await loadTemplate('/nonexistent/path/template.txt');
-    expect(result).toBe(DEFAULT_TEMPLATE);
+    expect(result).toBe(DEFAULT_TEMPLATE_ZH);
+    const resultEn = await loadTemplate('/nonexistent/path/template.txt', 'en');
+    expect(resultEn).toBe(DEFAULT_TEMPLATE_EN);
   });
 });
 
@@ -77,7 +86,6 @@ describe('renderPrompt', () => {
     const template = 'History: [{{conversation_history}}]';
     const result = renderPrompt(template, {
       originalPrompt: 'test',
-      languageInstruction: 'English',
     });
     expect(result).toBe('History: []');
   });
@@ -86,7 +94,6 @@ describe('renderPrompt', () => {
     const template = 'No placeholders here';
     const result = renderPrompt(template, {
       originalPrompt: 'test',
-      languageInstruction: 'English',
     });
     expect(result).toBe('No placeholders here');
   });
@@ -104,7 +111,6 @@ describe('renderPrompt', () => {
     const template = '{{original_prompt}}';
     const result = renderPrompt(template, {
       originalPrompt: 'Use {{language_instruction}} in the output',
-      languageInstruction: 'unused',
     });
     // Single-pass replacement: the user content is injected as-is,
     // but the regex won't re-match inside the already-replaced region
@@ -115,15 +121,24 @@ describe('renderPrompt', () => {
     expect(result).toContain('Use');
   });
 
-  it('should work with DEFAULT_TEMPLATE', () => {
-    const result = renderPrompt(DEFAULT_TEMPLATE, {
+  it('should work with DEFAULT_TEMPLATE_ZH', () => {
+    const result = renderPrompt(DEFAULT_TEMPLATE_ZH, {
       originalPrompt: 'Add a search feature',
       conversationHistory: 'User: I need search',
-      languageInstruction: 'Please output the enhanced prompt in English.',
     });
     expect(result).toContain('Add a search feature');
     expect(result).toContain('User: I need search');
-    expect(result).toContain('Please output the enhanced prompt in English.');
+    expect(result).toContain('<enhanced-prompt>');
+  });
+
+  it('should work with DEFAULT_TEMPLATE_EN', () => {
+    const result = renderPrompt(DEFAULT_TEMPLATE_EN, {
+      originalPrompt: 'Add a search feature',
+      conversationHistory: 'User: I need search',
+      language: 'en',
+    });
+    expect(result).toContain('Add a search feature');
+    expect(result).toContain('User: I need search');
     expect(result).toContain('<enhanced-prompt>');
   });
 
@@ -132,7 +147,6 @@ describe('renderPrompt', () => {
       const template = 'Before{{conversation_history_block}}After';
       const result = renderPrompt(template, {
         originalPrompt: 'test',
-        languageInstruction: 'English',
       });
       expect(result).toBe('BeforeAfter');
     });
@@ -141,7 +155,6 @@ describe('renderPrompt', () => {
       const template = 'Before{{codebase_context_block}}After';
       const result = renderPrompt(template, {
         originalPrompt: 'test',
-        languageInstruction: 'English',
       });
       expect(result).toBe('BeforeAfter');
     });
@@ -151,9 +164,19 @@ describe('renderPrompt', () => {
       const result = renderPrompt(template, {
         originalPrompt: 'test',
         conversationHistory: 'User: hello',
-        languageInstruction: 'English',
       });
       expect(result).toContain('对话历史：');
+      expect(result).toContain('User: hello');
+    });
+
+    it('should use English block title when language is en', () => {
+      const template = 'Before{{conversation_history_block}}After';
+      const result = renderPrompt(template, {
+        originalPrompt: 'test',
+        conversationHistory: 'User: hello',
+        language: 'en',
+      });
+      expect(result).toContain('Conversation history:');
       expect(result).toContain('User: hello');
     });
 
@@ -162,16 +185,25 @@ describe('renderPrompt', () => {
       const result = renderPrompt(template, {
         originalPrompt: 'test',
         codebaseContext: 'function foo() {}',
-        languageInstruction: 'English',
       });
       expect(result).toContain('代码库上下文：');
+      expect(result).toContain('function foo() {}');
+    });
+
+    it('should use English codebase block title when language is en', () => {
+      const template = 'Before{{codebase_context_block}}After';
+      const result = renderPrompt(template, {
+        originalPrompt: 'test',
+        codebaseContext: 'function foo() {}',
+        language: 'en',
+      });
+      expect(result).toContain('Codebase context:');
       expect(result).toContain('function foo() {}');
     });
 
     it('should omit both blocks in DEFAULT_TEMPLATE when both empty', () => {
       const result = renderPrompt(DEFAULT_TEMPLATE, {
         originalPrompt: 'Test prompt',
-        languageInstruction: 'Reply in English.',
       });
       expect(result).not.toContain('对话历史：');
       expect(result).not.toContain('代码库上下文：');
@@ -183,7 +215,6 @@ describe('renderPrompt', () => {
       const result = renderPrompt(template, {
         originalPrompt: 'test',
         conversationHistory: '   ',
-        languageInstruction: 'English',
       });
       expect(result).toBe('XY');
     });
